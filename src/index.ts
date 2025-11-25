@@ -1,16 +1,24 @@
-// Require the necessary discord.js classes
-import { Client, Events, GatewayIntentBits } from "discord.js";
-import { token } from "./secrets";
+import { Client, Collection, Events, GatewayIntentBits } from "discord.js";
+import { config } from "./config";
+import { commandList } from "./commands";
 
-// Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+client.commands = new Collection();
 
-// When the client is ready, run this code (only once).
-// The distinction between `client: Client<boolean>` and `readyClient: Client<true>` is important for TypeScript developers.
-// It makes some properties non-nullable.
+for (const command of commandList) {
+  client.commands.set(command.data.name, command);
+}
+
 client.once(Events.ClientReady, (readyClient) => {
   console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
-// Log in to Discord with your client's token
-client.login(token);
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isChatInputCommand()) {
+    return;
+  }
+  const command = client.commands.get(interaction.commandName);
+  await command.execute(interaction);
+});
+
+client.login(config.token);
